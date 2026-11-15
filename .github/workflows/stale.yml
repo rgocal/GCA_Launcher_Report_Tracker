@@ -1,0 +1,27 @@
+name: Stale Inactive Feedback
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v9
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          days-before-issue-stale: 60
+          days-before-issue-close: 14
+          stale-issue-label: 'status: stale'
+          close-issue-reason: 'not_planned'
+          stale-issue-message: 'This issue has been inactive for 60 days. Comment within 14 days to keep it open.'
+          close-issue-message: 'Closed due to prolonged inactivity.'
+          exempt-issue-labels: 'pinned,in-progress,votes: 25+,votes: 50+'
+          only-issue-labels: 'in-app-submission'
+          days-before-pr-stale: -1
+          days-before-pr-close: -1

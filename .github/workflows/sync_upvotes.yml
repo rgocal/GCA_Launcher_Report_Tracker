@@ -1,0 +1,68 @@
+name: Sync Upvote Tier Labels
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  sync-labels:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const res = await fetch('${{ secrets.UPVOTE_API_URL }}');
+            if (!res.ok) throw new Error('API fetch failed');
+            const data = await res.json();
+
+            const THRESHOLDS = [
+              { min: 5, label: 'votes: 5+' },
+              { min: 25, label: 'votes: 25+' },
+              { min: 50, label: 'votes: 50+' }
+            ];
+            const ALL_VOTE_LABELS = THRESHOLDS.map(t => t.label);
+
+            for (const item of data) {
+              const num = item.issueNumber;
+              const count = item.upvotes;
+              if (!num) continue;
+
+              try {
+                const { data: issue } = await github.rest.issues.get({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: num
+                });
+                if (issue.state !== 'open') continue;
+
+                let target = null;
+                for (const t of THRESHOLDS) {
+                  if (count >= t.min) target = t.label;
+                }
+
+                const current = issue.labels.map(l => l.name);
+                for (const stale of current.filter(l => ALL_VOTE_LABELS.includes(l) && l !== target)) {
+                  await github.rest.issues.removeLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: num,
+                    name: stale
+                  });
+                }
+                if (target && !current.includes(target)) {
+                  await github.rest.issues.addLabels({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: num,
+                    labels: [target]
+                  });
+                }
+              } catch (e) {
+                console.error(`Issue #${num} update skipped: ${e.message}`);
+              }
+            }

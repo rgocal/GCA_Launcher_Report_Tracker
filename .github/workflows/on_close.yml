@@ -1,0 +1,23 @@
+name: Track Issue Resolution
+
+on:
+  issues:
+    types: [closed]
+
+jobs:
+  tag-shipped:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            if (context.payload.issue.state_reason === 'completed') {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.issue.number,
+                labels: ['status: shipped']
+              });
+            }

@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.MY_TOKEN }}
           script: |
             const apiUrl = process.env.UPVOTE_API_URL;
             if (!apiUrl) {

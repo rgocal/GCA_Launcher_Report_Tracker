@@ -11,14 +11,24 @@ permissions:
 jobs:
   sync-labels:
     runs-on: ubuntu-latest
+    env:
+      UPVOTE_API_URL: ${{ secrets.UPVOTE_API_URL }}
     steps:
       - uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const res = await fetch('${{ secrets.UPVOTE_API_URL }}');
-            if (!res.ok) throw new Error('API fetch failed');
-            const data = await res.json();
+            const apiUrl = process.env.UPVOTE_API_URL;
+            if (!apiUrl) {
+              throw new Error('UPVOTE_API_URL secret is missing or empty.');
+            }
+
+            const res = await fetch(apiUrl);
+            if (!res.ok) {
+              throw new Error(`API fetch failed: ${res.status} ${res.statusText}`);
+            }
+            const raw = await res.json();
+            const data = Array.isArray(raw) ? raw : (raw.items || raw.issues || raw.data || []);
 
             const THRESHOLDS = [
               { min: 5, label: 'votes: 5+' },
